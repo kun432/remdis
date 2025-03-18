@@ -6,7 +6,7 @@ AIN:
 
 ASR:
  buff_size: 10
- json_key: <enter your json path>
+ json_key: ../google-tts-config.json
  language: ja-JP
  chunk_size: 20
  sample_rate: 16000 # Hz

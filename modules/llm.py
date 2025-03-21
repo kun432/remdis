@@ -4,7 +4,7 @@ import time
 import re
 import string
 
-import openai
+from openai import OpenAI
 
 from base import MMDAgentEXLabel
 
@@ -15,6 +15,7 @@ class ResponseGenerator:
         self.max_tokens = config['ChatGPT']['max_tokens']
         self.max_message_num_in_context = config['ChatGPT']['max_message_num_in_context']
         self.model = config['ChatGPT']['response_generation_model']
+        self.client = OpenAI(api_key=config['ChatGPT']['api_key'])
 
         # 処理対象のユーザ発話に関する情報
         self.asr_timestamp = asr_timestamp
@@ -49,7 +50,7 @@ class ResponseGenerator:
         self.log(f"Call ChatGPT: {query=}")
 
         # ChatGPTに対話文脈を入力してストリーミング形式で応答の生成を開始
-        self.response = openai.ChatCompletion.create(
+        self.response = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
             max_tokens=self.max_tokens,
@@ -82,10 +83,8 @@ class ResponseGenerator:
 
         # ChatGPTの応答を順次パースして返す
         for chunk in self.response:
-            chunk_message = chunk['choices'][0]['delta']
-
-            if 'content' in chunk_message.keys():
-                new_token = chunk_message.get('content')
+            if chunk.choices[0].delta.content is not None:
+                new_token = chunk.choices[0].delta.content
 
                 # 応答の断片を追加
                 if new_token != "/":
@@ -127,9 +126,6 @@ class ResponseChatGPT():
     def __init__(self, config, prompts):
         self.config = config
         self.prompts = prompts
-
-        # 設定の読み込み
-        openai.api_key = config['ChatGPT']['api_key']
 
         # 入力されたユーザ発話に関する情報を保持する変数
         self.user_utterance = ''

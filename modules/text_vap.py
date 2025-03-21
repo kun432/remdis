@@ -5,7 +5,7 @@ import queue
 import time
 import re
 
-import openai
+from openai import OpenAI
 
 from base import RemdisModule, RemdisUtil, RemdisUpdateType
 from base import MMDAgentEXLabel
@@ -19,7 +19,7 @@ class TextVAP(RemdisModule):
                          sub_exchanges=sub_exchanges)
 
         # ChatGPTの設定
-        openai.api_key = self.config['ChatGPT']['api_key']
+        self.client = OpenAI(api_key=self.config['ChatGPT']['api_key'])
         self.model = self.config['ChatGPT']['text_vap_model']
         self.max_tokens = self.config['ChatGPT']['max_tokens']
         self.prompts = prompt_util.load_prompts(self.config['ChatGPT']['prompts'])
@@ -138,7 +138,7 @@ class TextVAP(RemdisModule):
         ]
         
         # ChatGPTにプロンプトを入力してストリーミング形式で応答の生成を開始
-        self.response = openai.ChatCompletion.create(
+        self.response = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
             max_tokens=self.max_tokens,
@@ -151,9 +151,8 @@ class TextVAP(RemdisModule):
 
         # ChatGPTの応答を順次パース
         for chunk in self.response:
-            chunk_message = chunk['choices'][0]['delta']
-            if 'content' in chunk_message.keys():
-                new_token = chunk_message.get('content')
+            if chunk.choices[0].delta.content is not None:
+                new_token = chunk.choices[0].delta.content
 
                 if not new_token:
                     continue
